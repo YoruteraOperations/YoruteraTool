@@ -1,0 +1,483 @@
+:root {
+  --color-main:    #67a77d;
+  --color-base:    #f2efe7;
+  --color-sub:     #dfe4e2;
+  --color-accent1: #d95f5f;
+  --color-accent2: #f2c94c;
+  --color-accent3: #4a8fb7;
+  --color-text: #2d3436;
+  --color-text-muted: #636e72;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+  background: var(--color-base);
+  color: var(--color-text);
+  line-height: 1.55;
+}
+
+.site-bar {
+  background: var(--color-main);
+  color: #fff;
+  padding: 0.65rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 8px rgba(45, 52, 54, 0.12);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.home-button {
+  display: inline-block;
+  text-decoration: none;
+  background: transparent;
+  color: inherit;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0.2rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.3;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.home-button:hover,
+.home-button:focus-visible {
+  background: currentColor;
+  color: var(--color-main);
+}
+
+.home-button:focus-visible {
+  outline: 2px solid var(--color-accent2);
+  outline-offset: 2px;
+}
+
+.wrap {
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 2.5rem;
+}
+
+h1 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+  color: var(--color-text);
+}
+
+.lead {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin: 0 0 1.25rem;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--color-sub);
+  border-radius: 8px;
+  padding: 1.25rem 1.35rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(45, 52, 54, 0.06);
+}
+
+.card h2 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-main);
+  margin: 0 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--color-accent2);
+}
+
+.field {
+  margin-bottom: 1rem;
+}
+
+.field:last-child {
+  margin-bottom: 0;
+}
+
+label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 0.35rem;
+}
+
+label span.en {
+  font-weight: 400;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--color-sub);
+  border-radius: 6px;
+  background: var(--color-base);
+  font-size: 0.95rem;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: var(--color-main);
+  box-shadow: 0 0 0 2px rgba(103, 167, 125, 0.25);
+}
+
+.btn-primary {
+  cursor: pointer;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--color-main);
+  color: #fff;
+  transition: filter 0.15s, transform 0.05s;
+  flex-shrink: 0;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.06);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.output-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.output-head h2 {
+  margin: 0;
+  border: none;
+  padding: 0;
+}
+
+button.copy {
+  cursor: pointer;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--color-accent3);
+  color: #fff;
+  transition: filter 0.15s, transform 0.05s;
+}
+
+button.copy:hover {
+  filter: brightness(1.06);
+}
+
+button.copy:active {
+  transform: scale(0.98);
+}
+
+button.copy.copied {
+  background: var(--color-main);
+}
+
+pre.cmd {
+  margin: 0;
+  padding: 1rem;
+  background: #2d3436;
+  color: #dfe6e9;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  border-left: 4px solid var(--color-accent1);
+}
+
+.card .hint {
+  margin-top: 0.65rem;
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.warn {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--color-accent1);
+  display: none;
+}
+
+.warn.show {
+  display: block;
+}
+
+code {
+  font-size: 0.9em;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+/* --- 検索結果テーブル（searchItemID） --- */
+
+.count-bar {
+  font-size: 0.9rem;
+  color: #444;
+  margin-bottom: 0.35rem;
+}
+
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.25rem;
+  background: #fff;
+  border-radius: 0.6em;
+  overflow: hidden;
+  font-size: 1.02rem;
+}
+
+.results-table th,
+.results-table td {
+  padding: 0.85em 0.6em;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.results-table th {
+  background: var(--color-main);
+  color: #fff;
+}
+
+.results-table th.col-icon {
+  width: 52px;
+}
+
+.results-table tr:nth-child(even) {
+  background: var(--color-sub);
+}
+
+.results-table td.col-icon {
+  width: 52px;
+}
+
+.results-table td img.item-icon {
+  width: 32px;
+  height: 32px;
+  vertical-align: middle;
+  border-radius: 0.25em;
+  box-shadow: 0 2px 6px rgba(103, 167, 125, 0.08);
+  background: var(--color-base);
+  object-fit: contain;
+}
+
+.results-table td.col-name {
+  text-align: left;
+  font-weight: 500;
+}
+
+.results-table td.col-id {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 0.88em;
+  word-break: break-all;
+  text-align: left;
+}
+
+.id-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.copy-btn {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.35em;
+  border: 1px solid var(--color-main);
+  background: #fff;
+  color: var(--color-main);
+  cursor: pointer;
+}
+
+.copy-btn:hover {
+  background: var(--color-main);
+  color: #fff;
+}
+
+.no-result {
+  color: var(--color-accent1);
+  padding: 1.5em;
+  text-align: center;
+  font-weight: bold;
+}
+
+.idle-hint {
+  padding: 1.25rem;
+  text-align: center;
+  color: #666;
+  background: #fff;
+  border-radius: 0.6em;
+  border: 1px dashed var(--color-main);
+}
+
+.accent {
+  color: var(--color-accent2);
+  font-weight: bold;
+}
+
+@media (max-width: 600px) {
+  .results-table th,
+  .results-table td {
+    font-size: 0.95em;
+    padding: 0.5em 0.2em;
+  }
+}
+
+@media (max-width: 440px) {
+  .results-table td img.item-icon {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* --- トップページ（index）専用カードレイアウト --- */
+.tools-index-main {
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem 2.75rem;
+}
+
+.tools-index-heading {
+  text-align: center;
+  margin: 0 0 1.6rem;
+}
+
+.tools-index-title {
+  margin: 0 0 0.45rem;
+  font-size: 1.6rem;
+  color: var(--color-text);
+}
+
+.tools-index-lead {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.tools-index-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  justify-content: center;
+  gap: 1rem;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.tools-index-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  text-decoration: none;
+  color: var(--color-text);
+  background: var(--color-sub);
+  border: 1px solid var(--color-main);
+  border-radius: 10px;
+  padding: 1.1rem 1rem;
+  min-height: 150px;
+  transition: background-color 0.22s ease, color 0.22s ease, transform 0.2s ease, box-shadow 0.22s ease;
+  box-shadow: 0 2px 8px rgba(45, 52, 54, 0.08);
+}
+
+.tools-index-card:hover,
+.tools-index-card:focus-visible {
+  background: var(--color-main);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(45, 52, 54, 0.16);
+}
+
+.tools-index-card:focus-visible {
+  outline: 2px solid var(--color-accent2);
+  outline-offset: 2px;
+}
+
+.tools-index-card-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.22rem;
+  line-height: 1.35;
+}
+
+.tools-index-card-subtitle {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--color-text-muted);
+  transition: color 0.22s ease;
+}
+
+.tools-index-card:hover .tools-index-card-subtitle,
+.tools-index-card:focus-visible .tools-index-card-subtitle {
+  color: #f7fbf8;
+}
+
+@media (max-width: 860px) {
+  .tools-index-grid {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .tools-index-main {
+    padding-top: 1.4rem;
+  }
+
+  .tools-index-grid {
+    grid-template-columns: 1fr;
+    max-width: 420px;
+  }
+}
+
+footer {
+  padding: 1rem 2rem;
+  background: var(--color-main);
+  color: #ffffff;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+footer p {
+  margin: 0;
+  font-size: 0.875rem;
+}
