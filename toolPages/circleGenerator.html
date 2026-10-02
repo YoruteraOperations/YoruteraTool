@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>円ジェネレーター — yoruteraTool</title>
+  <link rel="stylesheet" href="../common.css">
+  <link rel="icon" type="image/png" href="../images/favicon_circle_180.png">
+  <link rel="apple-touch-icon" href="../images/favicon_circle_180.png">
+  <style>
+    /* ── このページ専用：レイアウト ── */
+    /* 設定パネルとキャンバスを横並びにするため、広めの幅を許可する */
+    .circle-wrap { max-width: 1120px; }
+
+    [hidden] { display: none !important; }
+
+    .gen-layout {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 1rem;
+      align-items: start;
+    }
+    .side-col { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+    .side-col .card { margin-bottom: 0; }
+    .main-col { min-width: 0; }
+    .main-col .card { margin-bottom: 0; }
+
+    /* ── 入力欄 ── */
+    .field-label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+    .num-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .num-row input[type="range"] {
+      flex: 1;
+      min-width: 0;
+      accent-color: var(--color-main);
+    }
+    .num-row input[type="text"] {
+      width: 4.6rem;
+      flex-shrink: 0;
+      text-align: right;
+      padding: 0.4rem 0.5rem;
+    }
+    .num-row .unit {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      flex-shrink: 0;
+    }
+
+    /* セグメント型の切り替えボタン（ラジオボタン） */
+    .seg {
+      display: flex;
+      border: 1px solid var(--color-main);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .seg label {
+      flex: 1 1 0;
+      margin: 0;
+      position: relative;
+      cursor: pointer;
+    }
+    .seg input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .seg span {
+      display: block;
+      text-align: center;
+      padding: 0.42rem 0.2rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--color-main);
+      background: #fff;
+      transition: background-color 0.12s, color 0.12s;
+      user-select: none;
+    }
+    .seg label + label span { border-left: 1px solid var(--color-main); }
+    .seg input:checked + span { background: var(--color-main); color: #fff; }
+    .seg input:focus-visible + span { outline: 2px solid var(--color-accent2); outline-offset: -2px; }
+    .seg label:hover input:not(:checked) + span { background: var(--color-base); }
+
+    /* ── 集計 ── */
+    .stat-list { display: flex; flex-direction: column; gap: 0.55rem; }
+    .stat {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.5rem;
+      font-size: 0.82rem;
+      border-bottom: 1px dashed var(--color-sub);
+      padding-bottom: 0.45rem;
+    }
+    .stat:last-child { border-bottom: none; padding-bottom: 0; }
+    .stat .k { color: var(--color-text-muted); }
+    .stat .v { font-weight: 700; text-align: right; }
+    .stat .v.big { font-size: 1.25rem; color: var(--color-main); }
+
+    /* ── キャンバス表示部 ── */
+    .viewer-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 0.6rem;
+    }
+    .viewer-toolbar .spacer { flex: 1 1 auto; }
+    .zoom-label {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      min-width: 5.5rem;
+      text-align: center;
+    }
+    .mini-btn {
+      cursor: pointer;
+      border: 1px solid var(--color-sub);
+      border-radius: 6px;
+      padding: 0.4rem 0.65rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: #fff;
+      color: var(--color-text);
+      transition: background-color 0.12s, border-color 0.12s, color 0.12s;
+      line-height: 1.3;
+    }
+    .mini-btn:hover { border-color: var(--color-main); background: var(--color-base); }
+    .mini-btn.square { min-width: 2.2rem; }
+    .mini-btn.danger { color: var(--color-accent1); border-color: var(--color-accent1); }
+    .mini-btn.danger:hover { background: var(--color-accent1); color: #fff; }
+
+    .viewer-stage {
+      position: relative;
+      width: 100%;
+      height: clamp(300px, 64vh, 680px);
+      border: 1px solid var(--color-sub);
+      border-radius: 6px;
+      overflow: hidden;
+      background: #e9e6dd;
+      touch-action: none; /* タッチ操作をページスクロールではなく移動・拡大に使う */
+      cursor: grab;
+    }
+    .viewer-stage.dragging { cursor: grabbing; }
+    #viewCanvas { display: block; width: 100%; height: 100%; }
+
+    .coord-bar {
+      margin-top: 0.55rem;
+      padding: 0.45rem 0.7rem;
+      border-radius: 6px;
+      background: var(--color-base);
+      font-size: 0.85rem;
+      font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+      min-height: 2.1rem;
+    }
+    .coord-bar .muted { color: var(--color-text-muted); font-family: inherit; }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem 1rem;
+      margin-top: 0.55rem;
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+    }
+    .legend i {
+      display: inline-block;
+      width: 0.9rem;
+      height: 0.9rem;
+      border-radius: 2px;
+      vertical-align: -0.15rem;
+      margin-right: 0.3rem;
+      border: 1px solid rgba(45, 52, 54, 0.2);
+    }
+    .legend i.line { height: 0; border: none; border-top: 3px solid; vertical-align: 0.2rem; }
+
+    /* ── 計算結果 ── */
+    .results-card { margin-top: 1rem; }
+    .step-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .step-head h3 { font-size: 0.85rem; margin: 0; }
+    .step-chips {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.7rem;
+      background: var(--color-base);
+      border-radius: 6px;
+    }
+    .step-chip {
+      min-width: 2rem;
+      text-align: center;
+      padding: 0.2rem 0.45rem;
+      border-radius: 5px;
+      background: var(--color-main);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.9rem;
+      font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    }
+    .step-sep { color: var(--color-text-muted); font-size: 0.75rem; }
+
+    .table-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+      margin-top: 1.1rem;
+    }
+    .table-block h3 { font-size: 0.85rem; margin: 0 0 0.25rem; }
+    .table-block .hint { margin: 0 0 0.45rem; }
+    .table-scroll {
+      max-height: 420px;
+      overflow: auto;
+      border: 1px solid var(--color-sub);
+      border-radius: 6px;
+    }
+    .run-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      background: #fff;
+    }
+    .run-table th {
+      position: sticky;
+      top: 0;
+      background: var(--color-main);
+      color: #fff;
+      font-weight: 600;
+      padding: 0.4rem 0.45rem;
+      text-align: center;
+      white-space: nowrap;
+      z-index: 1;
+    }
+    .run-table td {
+      padding: 0.32rem 0.45rem;
+      text-align: center;
+      vertical-align: middle;
+      border-top: 1px solid var(--color-sub);
+    }
+    .run-table tr:nth-child(even) td { background: #f6f7f6; }
+    .run-table td.num { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: nowrap; }
+    .run-table td.runs { text-align: left; }
+    .run-table td.xr { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.75rem; color: var(--color-text-muted); }
+    .run {
+      display: inline-block;
+      min-width: 1.6rem;
+      text-align: center;
+      padding: 0 0.3rem;
+      margin: 0.08rem 0;
+      border-radius: 4px;
+      background: var(--color-main);
+      color: #fff;
+      font-weight: 700;
+      font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    }
+    .gap {
+      display: inline-block;
+      padding: 0 0.3rem;
+      margin: 0.08rem 0.15rem;
+      font-size: 0.72rem;
+      color: var(--color-text-muted);
+      border: 1px dashed var(--color-sub);
+      border-radius: 4px;
+    }
+
+    /* ── レスポンシブ ── */
+    @media (max-width: 900px) {
+      .gen-layout { grid-template-columns: 1fr; }
+      .table-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 440px) {
+      .site-bar { font-size: 0.85rem; padding: 0.5rem 0.75rem; }
+      .card { padding: 1rem 0.85rem; }
+      .viewer-stage { height: clamp(280px, 92vw, 520px); }
+      .zoom-label { min-width: 4.6rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="site-bar">
+    <span>YoruteraTool — circleGenerator</span>
+    <a href="../index.html" class="home-button">HOME</a>
+  </div>
+
+  <div class="wrap circle-wrap">
+    <h1>円ジェネレーター</h1>
+    <p class="lead">Minecraftで円・楕円を作るためのブロック配置を計算します。マスをタップすると「設置済み」の目印を付けられます。</p>
+
+    <div class="gen-layout">
+      <!-- 左：設定と集計 -->
+      <div class="side-col">
+        <div class="card">
+          <h2>形の設定</h2>
+
+          <div class="field">
+            <span class="field-label">形</span>
+            <div class="seg">
+              <label><input type="radio" name="shapeMode" value="circle" checked><span>正円</span></label>
+              <label><input type="radio" name="shapeMode" value="ellipse"><span>楕円（幅・高さ別）</span></label>
+            </div>
+          </div>
+
+          <div class="field" id="circleFields">
+            <label for="diameterInput">直径 <span class="en">(ブロック数)</span></label>
+            <div class="num-row">
+              <input type="range" id="diameterRange" min="3" max="256" value="16" aria-label="直径スライダー">
+              <input type="text" id="diameterInput" inputmode="numeric" autocomplete="off" value="16">
+            </div>
+          </div>
+
+          <div id="ellipseFields" hidden>
+            <div class="field">
+              <label for="widthInput">幅 <span class="en">(X方向のブロック数)</span></label>
+              <div class="num-row">
+                <input type="range" id="widthRange" min="3" max="256" value="24" aria-label="幅スライダー">
+                <input type="text" id="widthInput" inputmode="numeric" autocomplete="off" value="24">
+              </div>
+            </div>
+            <div class="field">
+              <label for="heightInput">高さ <span class="en">(Z方向のブロック数)</span></label>
+              <div class="num-row">
+                <input type="range" id="heightRange" min="3" max="256" value="16" aria-label="高さスライダー">
+                <input type="text" id="heightInput" inputmode="numeric" autocomplete="off" value="16">
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <span class="field-label">種類</span>
+            <div class="seg">
+              <label><input type="radio" name="kind" value="outline" checked><span>輪郭のみ</span></label>
+              <label><input type="radio" name="kind" value="filled"><span>塗りつぶし</span></label>
+              <label><input type="radio" name="kind" value="thick"><span>太さ指定</span></label>
+            </div>
+          </div>
+
+          <div class="field" id="thickField" hidden>
+            <label for="thickInput">太さ <span class="en">(ブロック数)</span></label>
+            <div class="num-row">
+              <input type="range" id="thickRange" min="1" max="32" value="2" aria-label="太さスライダー">
+              <input type="text" id="thickInput" inputmode="numeric" autocomplete="off" value="2">
+            </div>
+          </div>
+
+          <div class="field">
+            <span class="field-label">太い補助線</span>
+            <div class="seg">
+              <label><input type="radio" name="gridStep" value="5" checked><span>5マスごと</span></label>
+              <label><input type="radio" name="gridStep" value="10"><span>10マスごと</span></label>
+            </div>
+          </div>
+
+          <p class="hint">数値はスライダー（3〜256）か入力欄（1〜512）で指定できます。奇数サイズは中心が1マス、偶数サイズは中心が2×2マスになります。</p>
+        </div>
+
+        <div class="card">
+          <h2>計算結果</h2>
+          <div class="stat-list">
+            <div class="stat"><span class="k">必要ブロック数</span><span class="v big" id="statTotal">-</span></div>
+            <div class="stat"><span class="k">スタック換算（64個）</span><span class="v" id="statStacks">-</span></div>
+            <div class="stat"><span class="k">設置済み ／ 残り</span><span class="v" id="statPlaced">-</span></div>
+            <div class="stat"><span class="k">サイズ</span><span class="v" id="statSize">-</span></div>
+            <div class="stat"><span class="k">中心</span><span class="v" id="statCenter">-</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右：グリッド表示 -->
+      <div class="main-col">
+        <div class="card">
+          <div class="viewer-toolbar">
+            <button type="button" class="mini-btn square" id="zoomOutBtn" title="縮小">－</button>
+            <span class="zoom-label" id="zoomLabel">-</span>
+            <button type="button" class="mini-btn square" id="zoomInBtn" title="拡大">＋</button>
+            <button type="button" class="mini-btn" id="fitBtn">全体表示</button>
+            <span class="spacer"></span>
+            <button type="button" class="mini-btn danger" id="clearMarksBtn">設置済みをリセット</button>
+            <button type="button" class="btn-primary" id="savePngBtn">PNGで保存</button>
+          </div>
+          <div class="viewer-stage" id="stage">
+            <canvas id="viewCanvas" aria-label="円のブロック配置グリッド"></canvas>
+          </div>
+          <div class="coord-bar" id="coordBar"><span class="muted">マスにカーソルを合わせる（スマホはタップ）と、中心からの座標を表示します。</span></div>
+          <div class="legend">
+            <span><i style="background:#67a77d"></i>置くブロック</span>
+            <span><i style="background:#4a8fb7"></i>設置済み</span>
+            <span><i class="line" style="border-color:#d95f5f"></i>中心線</span>
+            <span><i class="line" style="border-color:#636e72"></i>補助線</span>
+          </div>
+          <p class="hint">ドラッグで移動、ホイール／ピンチで拡大・縮小。ブロックのマスをクリック（タップ）すると設置済みの色に切り替わります。座標は中心からのブロック数で、右が +X（東）、下が +Z（南）です。偶数サイズは中心線をはさんで ±1 から数えます。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 下：並びの一覧 -->
+    <div class="card results-card">
+      <h2>ブロックの並び</h2>
+
+      <div class="step-head">
+        <h3>外周の段差パターン（1/4周）</h3>
+        <button type="button" class="copy" id="copyStepsBtn">コピー</button>
+      </div>
+      <div class="step-chips" id="stepChips"></div>
+      <p class="hint" id="stepHint">上の辺の直線から右回りに、右の辺の直線までの各直線に並ぶブロック数です（曲がり角の1個は両方の直線に数えます）。</p>
+
+      <div class="table-grid">
+        <div class="table-block">
+          <h3>1/4（右上の象限）の並び</h3>
+          <p class="hint" id="quadHint">中心から右へ向かって、空きマスとブロック数を順に示します。残りの3象限は上下・左右対称です。</p>
+          <div class="table-scroll">
+            <table class="run-table">
+              <thead><tr><th>Z</th><th>個数</th><th>中心から右へ</th><th>X の範囲</th></tr></thead>
+              <tbody id="quadBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="table-block">
+          <h3>全体の行ごとの並び</h3>
+          <p class="hint">上の行から順に、左端から何個ずつ置くかを示します。</p>
+          <div class="table-scroll">
+            <table class="run-table">
+              <thead><tr><th>行</th><th>Z</th><th>個数</th><th>左端から</th><th>X の範囲</th></tr></thead>
+              <tbody id="fullBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>© 2026 Yorutera Operations</p>
+  </footer>
+
+  <script>
+    (function () {
+      "use strict";
+
+      // ── 定数 ──
+      const SIZE_MIN = 1;              // 入力欄で指定できる最小ブロック数
+      const SIZE_MAX = 512;            // 入力欄で指定できる最大ブロック数（スライダーは256まで）
+      const THICK_MIN = 1;             // 太さの最小
+      const THICK_MAX = 32;            // 太さの最大
+      const STACK_SIZE = 64;           // 1スタックの個数
+      const ZOOM_MIN = 0.5;            // 1マスの最小表示サイズ(px)
+      const ZOOM_MAX = 80;             // 1マスの最大表示サイズ(px)
+      const ZOOM_BUTTON_STEP = 1.4;    // ＋／－ボタン1回分の倍率
+      const WHEEL_ZOOM_RATE = 0.0015;  // ホイール量→倍率の係数
+      const WHEEL_LINE_PX = 33;        // 行単位のホイール量をpxに換算する値
+      const FIT_PADDING = 16;          // 全体表示時の余白(px)
+      const TAP_TOLERANCE = 6;         // これ以上動いたらタップではなくドラッグ扱い(px)
+      const THIN_GRID_MIN_PX = 5;      // 1マスがこのpx以上のとき細いグリッド線を描く
+      const BOLD_GRID_MIN_PX = 6;      // 補助線の間隔がこのpx以上のとき太線を描く
+      const THICK_LINE_MIN_PX = 10;    // 1マスがこのpx以上なら補助線を2px幅にする
+      const EXPORT_MAX_PX = 3600;      // PNG書き出し時のグリッド最大辺(px)（スマホのcanvas上限対策）
+      const EXPORT_CELL_MIN = 6;       // PNG書き出し時の1マス最小px
+      const EXPORT_CELL_MAX = 24;      // PNG書き出し時の1マス最大px
+      const EXPORT_MARGIN = 44;        // PNG書き出し時の外側余白(px)
+      const EXPORT_HEADER = 70;        // PNG書き出し時のタイトル領域の高さ(px)
+      const EXPORT_LABEL_MIN_GAP = 22; // 目盛り数字を描く最小間隔(px)
+      const STORAGE_KEY = "yoruteraTool_circleGenerator_v1";
+      const MAX_SAVED_SIZES = 10;      // 設置済みの目印を保存しておくサイズ数の上限
+      const FONT_FAMILY = '"Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif';
+
+      const COLORS = {
+        stageBg: "#e9e6dd",
+        gridBg: "#ffffff",
+        block: "#67a77d",
+        placed: "#4a8fb7",
+        thin: "rgba(45, 52, 54, 0.16)",
+        bold: "rgba(45, 52, 54, 0.6)",
+        center: "#d95f5f",
+        hover: "#f2c94c",
+        border: "#636e72",
+        text: "#2d3436",
+        muted: "#636e72"
+      };
+
+      const KIND_LABEL = { outline: "輪郭のみ", filled: "塗りつぶし", thick: "太さ指定" };
+
+      // ── 状態 ──
+      const state = {
+        mode: "circle",   // circle / ellipse
+        diameter: 16,
+        width: 24,
+        height: 16,
+        kind: "outline",  // outline / filled / thick
+        thick: 2,
+        gridStep: 5
+      };
+      let shape = null;          // 計算済みの形（computeShape の戻り値）
+      const marksBySize = {};    // "幅x高さ" → 設置済みマスの番号(Set)
+      const view = { s: 10, ox: 0, oy: 0 }; // s=1マスの表示px、ox/oy=グリッド左上の位置
+      let viewW = 0, viewH = 0, dpr = 1;
+      let needsFit = true;
+      let hover = null;          // カーソル位置のマス {i, j}
+      let drawQueued = false;
+      let saveTimer = 0;
+
+      // ── DOM ──
+      const $ = id => document.getElementById(id);
+      const stage = $("stage");
+      const canvas = $("viewCanvas");
+      const ctx = canvas.getContext("2d");
+      const coordBar = $("coordBar");
+      const zoomLabel = $("zoomLabel");
+
+      // ── ユーティリティ ──
+      function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+      function fmt(n) { return n.toLocaleString("ja-JP"); }
+      function signed(n) { return n > 0 ? "+" + n : String(n); }
+
+      /** 全角数字などを半角へ */
+      function toHalfWidth(str) {
+        return String(str || "")
+          .replace(/　/g, " ")
+          .replace(/[！-～]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xfee0));
+      }
+
+      /**
+       * マス番号 → 中心からの座標
+       * 奇数サイズ：中心のマスが 0
+       * 偶数サイズ：中心線をはさんで -1 / +1 から数える（0 は無い）
+       */
+      function axisLabel(index, size) {
+        if (size % 2 === 1) return index - (size - 1) / 2;
+        const half = size / 2;
+        return index >= half ? index - half + 1 : index - half;
+      }
+
+      /** 中心から数えて step マスごとの境界線の位置（マスの境目の番号）を返す */
+      function boldBoundaries(size, step) {
+        const list = [];
+        for (let b = Math.ceil(size / 2) + step; b <= size; b += step) list.push({ b: b, label: "+" + (b - Math.ceil(size / 2)) });
+        for (let b = Math.floor(size / 2) - step; b >= 0; b -= step) list.push({ b: b, label: "-" + (Math.floor(size / 2) - b) });
+        return list;
+      }
+
+      // ── 形の計算 ──
+      /**
+       * 幅 w × 高さ h の楕円に含まれるマスを求める。
+       * 各マスの中心が楕円の内側（境界を含む）にあればブロックを置く。
+       * 判定は整数演算で行い、浮動小数の誤差で左右上下の対称性が崩れないようにする。
+       *   マス中心の座標を2倍した値 X2 = 2i+1-w, Z2 = 2j+1-h とすると
+       *   (X2/w)^2 + (Z2/h)^2 <= 1  ⇔  X2^2*h^2 + Z2^2*w^2 <= w^2*h^2
+       */
+      function computeShape(w, h, kind, thick) {
+        const L = new Int32Array(h);   // 各行の左端（外形）
+        const R = new Int32Array(h);   // 各行の右端（外形）
+        const IL = new Int32Array(h);  // 各行の「中身（ブロックを置かない部分）」の左端
+        const IR = new Int32Array(h);  // 同 右端
+        const w2 = w * w, h2 = h * h, limit = w2 * h2;
+        const halfCols = Math.ceil(w / 2);
+
+        for (let j = 0; j < h; j++) {
+          const z2 = 2 * j + 1 - h;
+          const zTerm = z2 * z2 * w2;
+          let left = -1;
+          // 左から最初に内側に入るマスを探す（右端は左右対称で求める）
+          for (let i = 0; i < halfCols; i++) {
+            const x2 = 2 * i + 1 - w;
+            if (x2 * x2 * h2 + zTerm <= limit) { left = i; break; }
+          }
+          if (left < 0) { L[j] = 0; R[j] = -1; }
+          else { L[j] = left; R[j] = w - 1 - left; }
+          IL[j] = 0; IR[j] = -1;
+        }
+
+        // 輪郭・太さ指定：外側のマスから距離 t 以内にあるマスだけを残す
+        // （距離1 = 上下左右に外側がある。つまり輪郭は斜めにつながる細い線になる）
+        if (kind !== "filled") {
+          const t = kind === "outline" ? 1 : thick;
+          const reach = [];
+          for (let dz = 0; dz <= t; dz++) reach.push(Math.floor(Math.sqrt(t * t - dz * dz) + 1e-9));
+          for (let j = 0; j < h; j++) {
+            if (L[j] > R[j]) continue;
+            let lo = -Infinity, hi = Infinity, ok = true;
+            for (let dz = -t; dz <= t; dz++) {
+              const jj = j + dz;
+              if (jj < 0 || jj >= h || L[jj] > R[jj]) { ok = false; break; }
+              const m = reach[Math.abs(dz)];
+              lo = Math.max(lo, L[jj] + m);
+              hi = Math.min(hi, R[jj] - m);
+            }
+            if (ok && lo <= hi) { IL[j] = lo; IR[j] = hi; }
+          }
+        }
+
+        // 行ごとの連続ブロック（ラン）と合計
+        const runs = [];
+        let total = 0;
+        for (let j = 0; j < h; j++) {
+          const list = [];
+          if (L[j] <= R[j]) {
+            if (IL[j] > IR[j]) list.push([L[j], R[j]]);
+            else {
+              if (IL[j] > L[j]) list.push([L[j], IL[j] - 1]);
+              if (IR[j] < R[j]) list.push([IR[j] + 1, R[j]]);
+            }
+          }
+          for (const r of list) total += r[1] - r[0] + 1;
+          runs.push(list);
+        }
+
+        return { w: w, h: h, L: L, R: R, IL: IL, IR: IR, runs: runs, total: total };
+      }
+
+      function isBlock(i, j) {
+        if (!shape || i < 0 || j < 0 || i >= shape.w || j >= shape.h) return false;
+        if (i < shape.L[j] || i > shape.R[j]) return false;
+        return !(i >= shape.IL[j] && i <= shape.IR[j]);
+      }
+
+      /**
+       * 外周の段差パターン（1/4周）
+       * 上の辺の直線（左端→右端）から右回りに、右の辺の直線の終わりまで外周をたどり、
+       * 縦または横にまっすぐ並ぶ区間ごとのブロック数を返す。斜めに移ったら区間を区切る。
+       * 曲がり角（横→縦）のマスは両方の区間に数える。
+       */
+      function computeSteps(sh) {
+        const { h, L, R } = sh;
+        let top = -1, rMax = -1, last = -1;
+        for (let j = 0; j < h; j++) {
+          if (L[j] > R[j]) continue;
+          if (top < 0) top = j;
+          rMax = Math.max(rMax, R[j]);
+        }
+        if (top < 0) return [];
+        for (let j = h - 1; j >= 0; j--) {
+          if (L[j] <= R[j] && R[j] === rMax) { last = j; break; }
+        }
+
+        // 外周の経路（上端の行は全幅、以降は右側の縁）
+        const path = [];
+        for (let i = L[top]; i <= R[top]; i++) path.push([i, top]);
+        for (let j = top + 1; j <= last; j++) {
+          if (R[j] > R[j - 1]) {
+            for (let i = R[j - 1] + 1; i <= R[j]; i++) path.push([i, j]);
+          } else {
+            path.push([R[j], j]);
+          }
+        }
+
+        const segs = [];
+        let dir = null, len = 1;
+        for (let k = 1; k < path.length; k++) {
+          const dx = path[k][0] - path[k - 1][0];
+          const dz = path[k][1] - path[k - 1][1];
+          const mv = dz === 0 ? "h" : (dx === 0 ? "v" : "d");
+          if (mv === "d") { segs.push(len); dir = null; len = 1; }
+          else if (dir === null || dir === mv) { dir = mv; len++; }
+          else { segs.push(len); dir = mv; len = 2; }
+        }
+        segs.push(len);
+        return segs;
+      }
+
+      // ── 設置済みの目印 ──
+      function sizeKey() { return shape.w + "x" + shape.h; }
+      function currentMarks() {
+        const key = sizeKey();
+        if (!marksBySize[key]) marksBySize[key] = new Set();
+        return marksBySize[key];
+      }
+      function placedCount() {
+        let n = 0;
+        for (const idx of currentMarks()) {
+          if (isBlock(idx % shape.w, Math.floor(idx / shape.w))) n++;
+        }
+        return n;
+      }
+
+      // ── 設定の読み書き（ブラウザ内保存） ──
+      function saveState() {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => {
+          try {
+            const keys = Object.keys(marksBySize).filter(k => marksBySize[k].size > 0);
+            // 現在のサイズを優先して上限数まで保存する
+            const cur = shape ? sizeKey() : "";
+            keys.sort((a, b) => (a === cur ? -1 : b === cur ? 1 : 0));
+            const marks = {};
+            keys.slice(0, MAX_SAVED_SIZES).forEach(k => { marks[k] = Array.from(marksBySize[k]); });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({ state: state, marks: marks }));
+          } catch (e) { /* 保存できない環境では何もしない */ }
+        }, 300);
+      }
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          const data = JSON.parse(raw);
+          const s = data && data.state;
+          if (s) {
+            if (s.mode === "circle" || s.mode === "ellipse") state.mode = s.mode;
+            if (KIND_LABEL[s.kind]) state.kind = s.kind;
+            if (s.gridStep === 5 || s.gridStep === 10) state.gridStep = s.gridStep;
+            state.diameter = sanitizeSize(s.diameter, state.diameter);
+            state.width = sanitizeSize(s.width, state.width);
+            state.height = sanitizeSize(s.height, state.height);
+            const t = parseInt(s.thick, 10);
+            if (t >= THICK_MIN && t <= THICK_MAX) state.thick = t;
+          }
+          if (data.marks) {
+            Object.keys(data.marks).forEach(k => {
+              if (/^\d+x\d+$/.test(k) && Array.isArray(data.marks[k])) {
+                marksBySize[k] = new Set(data.marks[k].filter(n => Number.isInteger(n) && n >= 0));
+              }
+            });
+          }
+        } catch (e) { /* 壊れたデータは無視 */ }
+      }
+      function sanitizeSize(v, fallback) {
+        const n = parseInt(v, 10);
+        return n >= SIZE_MIN && n <= SIZE_MAX ? n : fallback;
+      }
+
+      // ── 入力欄 ──
+      // 数値入力欄とスライダーを連動させる
+      function bindNumber(textId, rangeId, key, min, max) {
+        const text = $(textId), range = $(rangeId);
+        function setValue(n, fromRange) {
+          state[key] = n;
+          if (!fromRange) range.value = String(clamp(n, Number(range.min), Number(range.max)));
+          if (document.activeElement !== text || fromRange) text.value = String(n);
+          update();
+        }
+        range.addEventListener("input", () => setValue(parseInt(range.value, 10), true));
+        text.addEventListener("input", () => {
+          const v = toHalfWidth(text.value).replace(/[^\d]/g, "");
+          if (text.value !== v) text.value = v;
+          const n = parseInt(v, 10);
+          if (n >= min && n <= max) setValue(n, false);
+        });
+        text.addEventListener("change", () => {
+          const n = parseInt(toHalfWidth(text.value), 10);
+          const fixed = isNaN(n) ? state[key] : clamp(n, min, max);
+          text.value = String(fixed);
+          setValue(fixed, false);
+        });
+        text.addEventListener("keydown", e => { if (e.key === "Enter") text.blur(); });
+        text.value = String(state[key]);
+        range.value = String(clamp(state[key], Number(range.min), Number(range.max)));
+      }
+
+      function bindRadios(name, onChange) {
+        document.querySelectorAll('input[name="' + name + '"]').forEach(el => {
+          el.addEventListener("change", () => { if (el.checked) onChange(el.value); });
+        });
+      }
+      function setRadio(name, value) {
+        const el = document.querySelector('input[name="' + name + '"][value="' + value + '"]');
+        if (el) el.checked = true;
+      }
+
+      function syncVisibility() {
+        $("circleFields").hidden = state.mode !== "circle";
+        $("ellipseFields").hidden = state.mode !== "ellipse";
+        $("thickField").hidden = state.kind !== "thick";
+      }
+
+      // ── 更新処理 ──
+      function getDims() {
+        return state.mode === "circle" ? [state.diameter, state.diameter] : [state.width, state.height];
+      }
+
+      function update() {
+        syncVisibility();
+        const dims = getDims();
+        const sizeChanged = !shape || shape.w !== dims[0] || shape.h !== dims[1];
+        shape = computeShape(dims[0], dims[1], state.kind, state.thick);
+        shape.boldX = boldBoundaries(shape.w, state.gridStep);
+        shape.boldZ = boldBoundaries(shape.h, state.gridStep);
+        shape.steps = computeSteps(shape);
+        if (sizeChanged) {
+          hover = null;
+          needsFit = true;
+          showCoordHint();
+        }
+        renderResults();
+        scheduleDraw();
+        saveState();
+      }
+
+      // ── 結果の表示 ──
+      function renderStats() {
+        const total = shape.total;
+        const stacks = Math.floor(total / STACK_SIZE);
+        const rest = total % STACK_SIZE;
+        $("statTotal").textContent = fmt(total) + " 個";
+        $("statStacks").textContent = stacks === 0 ? rest + " 個（1スタック未満）"
+          : stacks + " スタック" + (rest ? " ＋ " + rest + " 個" : "");
+        const placed = placedCount();
+        $("statPlaced").textContent = fmt(placed) + " 個 ／ 残り " + fmt(total - placed) + " 個";
+        $("statSize").textContent = "幅 " + shape.w + " × 高さ " + shape.h + "（" + KIND_LABEL[state.kind] +
+          (state.kind === "thick" ? " " + state.thick : "") + "）";
+        const cx = shape.w % 2 ? 1 : 2, cz = shape.h % 2 ? 1 : 2;
+        $("statCenter").textContent = cx === cz ? (cx === 1 ? "1 マス" : "2 × 2 マス") : "横 " + cx + " × 縦 " + cz + " マス";
+      }
+
+      // 列番号 a〜b を X 座標の範囲の文字列にする（1マスだけなら単独表記）
+      function rangeText(a, b) {
+        const xa = signed(axisLabel(a, shape.w));
+        return a === b ? xa : xa + "〜" + signed(axisLabel(b, shape.w));
+      }
+
+      function renderResults() {
+        renderStats();
+
+        // 段差パターン
+        const steps = shape.steps;
+        $("stepChips").innerHTML = steps.length
+          ? steps.map(n => '<span class="step-chip">' + n + "</span>").join('<span class="step-sep">→</span>')
+          : '<span class="hint">ブロックがありません</span>';
+        const isCircle = shape.w === shape.h;
+        $("stepHint").textContent = "上の辺の直線から右回りに、右の辺の直線までの各直線に並ぶブロック数です（曲がり角の1個は両方の直線に数えます）。" +
+          (isCircle ? "円なので、残りの3/4周も同じ並びのくり返しです。" : "楕円なので、次の1/4周はこの並びを逆順にたどります。") +
+          (state.kind === "thick" ? "太さ指定のときは一番外側の線の並びです。" : "");
+
+        // 1/4（右上）の並び
+        const qStartCol = Math.floor(shape.w / 2);       // 奇数なら中心の列を含む
+        const qEndRow = Math.ceil(shape.h / 2) - 1;      // 奇数なら中心の行を含む
+        let qHtml = "";
+        for (let j = 0; j <= qEndRow; j++) {
+          const parts = [];
+          const ranges = [];
+          let cursor = qStartCol, count = 0;
+          for (const r of shape.runs[j]) {
+            const a = Math.max(r[0], qStartCol), b = r[1];
+            if (a > b) continue;
+            if (a > cursor) parts.push('<span class="gap">空き ' + (a - cursor) + "</span>");
+            parts.push('<span class="run">' + (b - a + 1) + "</span>");
+            ranges.push(rangeText(a, b));
+            count += b - a + 1;
+            cursor = b + 1;
+          }
+          if (!count) continue;
+          qHtml += "<tr><td class=\"num\">" + signed(axisLabel(j, shape.h)) + "</td><td class=\"num\">" + count +
+            "</td><td class=\"runs\">" + parts.join("") + "</td><td class=\"xr\">" + ranges.join(", ") + "</td></tr>";
+        }
+        $("quadBody").innerHTML = qHtml || '<tr><td colspan="4">ブロックがありません</td></tr>';
+        $("quadHint").textContent = "中心から右へ向かって、空きマスとブロック数を順に示します（上から順）。残りの3象限は上下・左右対称です。" +
+          (shape.w % 2 || shape.h % 2 ? "奇数サイズの中心の列（X=0）・行（Z=0）は、ほかの象限と共有しています。" : "");
+
+        // 全体の行ごとの並び
+        let fHtml = "";
+        let rowNo = 0;
+        for (let j = 0; j < shape.h; j++) {
+          const list = shape.runs[j];
+          if (!list.length) continue;
+          rowNo++;
+          const parts = [];
+          const ranges = [];
+          let count = 0;
+          list.forEach((r, k) => {
+            if (k > 0) parts.push('<span class="gap">空き ' + (r[0] - list[k - 1][1] - 1) + "</span>");
+            parts.push('<span class="run">' + (r[1] - r[0] + 1) + "</span>");
+            ranges.push(rangeText(r[0], r[1]));
+            count += r[1] - r[0] + 1;
+          });
+          fHtml += "<tr><td class=\"num\">" + rowNo + "</td><td class=\"num\">" + signed(axisLabel(j, shape.h)) +
+            "</td><td class=\"num\">" + count + "</td><td class=\"runs\">" + parts.join("") +
+            "</td><td class=\"xr\">" + ranges.join(", ") + "</td></tr>";
+        }
+        $("fullBody").innerHTML = fHtml || '<tr><td colspan="5">ブロックがありません</td></tr>';
+      }
+
+      // ── 描画（画面表示とPNG書き出しで共通） ──
+      /**
+       * c：描画先、s：1マスのpx、ox/oy：グリッド左上の位置、vw/vh：描画範囲の大きさ
+       */
+      function paintGrid(c, s, ox, oy, vw, vh, hoverCell) {
+        const w = shape.w, h = shape.h;
+        const px = i => Math.round(ox + i * s);
+        const py = j => Math.round(oy + j * s);
+        // 見えている範囲のマスだけ描く（大きな円でも軽くするため）
+        const i0 = Math.max(0, Math.floor(-ox / s));
+        const i1 = Math.min(w - 1, Math.floor((vw - ox) / s));
+        const j0 = Math.max(0, Math.floor(-oy / s));
+        const j1 = Math.min(h - 1, Math.floor((vh - oy) / s));
+        if (i0 > i1 || j0 > j1) return;
+
+        // グリッドの下地
+        c.fillStyle = COLORS.gridBg;
+        c.fillRect(px(0), py(0), px(w) - px(0), py(h) - py(0));
+
+        // ブロック（行ごとのランをまとめて塗る）
+        c.fillStyle = COLORS.block;
+        for (let j = j0; j <= j1; j++) {
+          for (const r of shape.runs[j]) {
+            const a = Math.max(r[0], i0), b = Math.min(r[1], i1);
+            if (a <= b) c.fillRect(px(a), py(j), px(b + 1) - px(a), py(j + 1) - py(j));
+          }
+        }
+
+        // 設置済み
+        const marks = currentMarks();
+        if (marks.size) {
+          c.fillStyle = COLORS.placed;
+          for (let j = j0; j <= j1; j++) {
+            for (const r of shape.runs[j]) {
+              const a = Math.max(r[0], i0), b = Math.min(r[1], i1);
+              for (let i = a; i <= b; i++) {
+                if (marks.has(j * w + i)) c.fillRect(px(i), py(j), px(i + 1) - px(i), py(j + 1) - py(j));
+              }
+            }
+          }
+        }
+
+        const gx0 = px(Math.max(0, i0)), gx1 = px(Math.min(w, i1 + 1));
+        const gy0 = py(Math.max(0, j0)), gy1 = py(Math.min(h, j1 + 1));
+
+        // 細いグリッド線
+        if (s >= THIN_GRID_MIN_PX) {
+          c.beginPath();
+          for (let i = i0; i <= i1 + 1; i++) { const x = px(i) + 0.5; c.moveTo(x, gy0); c.lineTo(x, gy1); }
+          for (let j = j0; j <= j1 + 1; j++) { const y = py(j) + 0.5; c.moveTo(gx0, y); c.lineTo(gx1, y); }
+          c.strokeStyle = COLORS.thin;
+          c.lineWidth = 1;
+          c.stroke();
+        }
+
+        // 太い補助線（中心から step マスごと）
+        if (s * state.gridStep >= BOLD_GRID_MIN_PX) {
+          c.beginPath();
+          for (const bx of shape.boldX) {
+            if (bx.b < i0 || bx.b > i1 + 1) continue;
+            const x = px(bx.b) + 0.5; c.moveTo(x, gy0); c.lineTo(x, gy1);
+          }
+          for (const bz of shape.boldZ) {
+            if (bz.b < j0 || bz.b > j1 + 1) continue;
+            const y = py(bz.b) + 0.5; c.moveTo(gx0, y); c.lineTo(gx1, y);
+          }
+          c.strokeStyle = COLORS.bold;
+          c.lineWidth = s >= THICK_LINE_MIN_PX ? 2 : 1;
+          c.stroke();
+        }
+
+        // 中心線
+        c.beginPath();
+        const cx = Math.round(ox + (w / 2) * s) + 0.5;
+        const cy = Math.round(oy + (h / 2) * s) + 0.5;
+        c.moveTo(cx, gy0); c.lineTo(cx, gy1);
+        c.moveTo(gx0, cy); c.lineTo(gx1, cy);
+        c.strokeStyle = COLORS.center;
+        c.lineWidth = 2;
+        c.stroke();
+
+        // 外枠
+        c.strokeStyle = COLORS.border;
+        c.lineWidth = 1;
+        c.strokeRect(px(0) + 0.5, py(0) + 0.5, px(w) - px(0), py(h) - py(0));
+
+        // カーソル位置
+        if (hoverCell) {
+          c.strokeStyle = COLORS.hover;
+          c.lineWidth = Math.max(2, Math.min(4, s / 6));
+          c.strokeRect(px(hoverCell.i), py(hoverCell.j), px(hoverCell.i + 1) - px(hoverCell.i), py(hoverCell.j + 1) - py(hoverCell.j));
+        }
+      }
+
+      function scheduleDraw() {
+        if (drawQueued) return;
+        drawQueued = true;
+        requestAnimationFrame(() => {
+          drawQueued = false;
+          draw();
+        });
+      }
+
+      function draw() {
+        if (!shape || !viewW || !viewH) return;
+        if (needsFit) { fitView(); needsFit = false; }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.fillStyle = COLORS.stageBg;
+        ctx.fillRect(0, 0, viewW, viewH);
+        paintGrid(ctx, view.s, view.ox, view.oy, viewW, viewH, hover);
+        zoomLabel.textContent = "1マス " + (view.s >= 10 ? Math.round(view.s) : view.s.toFixed(1)) + "px";
+      }
+
+      // ── 表示位置・拡大率 ──
+      function fitView() {
+        if (!shape || !viewW || !viewH) return;
+        const s = Math.min((viewW - FIT_PADDING * 2) / shape.w, (viewH - FIT_PADDING * 2) / shape.h);
+        view.s = clamp(s, ZOOM_MIN, ZOOM_MAX);
+        view.ox = (viewW - shape.w * view.s) / 2;
+        view.oy = (viewH - shape.h * view.s) / 2;
+      }
+      function zoomAt(x, y, newScale) {
+        const s = clamp(newScale, ZOOM_MIN, ZOOM_MAX);
+        const gx = (x - view.ox) / view.s, gy = (y - view.oy) / view.s;
+        view.s = s;
+        view.ox = x - gx * s;
+        view.oy = y - gy * s;
+        clampPan();
+        scheduleDraw();
+      }
+      // グリッドが画面外へ完全に消えないようにする
+      function clampPan() {
+        const gw = shape.w * view.s, gh = shape.h * view.s;
+        const keep = Math.min(60, viewW / 3, viewH / 3);
+        view.ox = clamp(view.ox, keep - gw, viewW - keep);
+        view.oy = clamp(view.oy, keep - gh, viewH - keep);
+      }
+
+      function resizeCanvas() {
+        const rect = stage.getBoundingClientRect();
+        const oldW = viewW, oldH = viewH;
+        viewW = Math.max(1, Math.floor(rect.width));
+        viewH = Math.max(1, Math.floor(rect.height));
+        dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.round(viewW * dpr);
+        canvas.height = Math.round(viewH * dpr);
+        if (oldW && oldH) {
+          // 中央を保ったままサイズ変更に追従する
+          view.ox += (viewW - oldW) / 2;
+          view.oy += (viewH - oldH) / 2;
+        }
+        draw();
+      }
+
+      // ── 座標表示 ──
+      function showCoordHint() {
+        coordBar.innerHTML = '<span class="muted">マスにカーソルを合わせる（スマホはタップ）と、中心からの座標を表示します。</span>';
+      }
+      function showCoord(cell) {
+        if (!cell) { showCoordHint(); return; }
+        const x = axisLabel(cell.i, shape.w), z = axisLabel(cell.j, shape.h);
+        let status;
+        if (isBlock(cell.i, cell.j)) status = currentMarks().has(cell.j * shape.w + cell.i) ? "ブロック（設置済み）" : "ブロック";
+        else status = "空き";
+        coordBar.innerHTML = "X: <b>" + signed(x) + "</b>　Z: <b>" + signed(z) + '</b>　<span class="muted">｜ ' + status + "</span>";
+      }
+
+      function cellAt(x, y) {
+        const i = Math.floor((x - view.ox) / view.s);
+        const j = Math.floor((y - view.oy) / view.s);
+        if (i < 0 || j < 0 || i >= shape.w || j >= shape.h) return null;
+        return { i: i, j: j };
+      }
+
+      function setHover(cell) {
+        const same = (hover && cell && hover.i === cell.i && hover.j === cell.j) || (!hover && !cell);
+        hover = cell;
+        showCoord(cell);
+        if (!same) scheduleDraw();
+      }
+
+      // マスをクリック／タップしたとき：ブロックなら設置済みを切り替える
+      function handleTap(x, y) {
+        const cell = cellAt(x, y);
+        if (cell && isBlock(cell.i, cell.j)) {
+          const marks = currentMarks();
+          const idx = cell.j * shape.w + cell.i;
+          if (marks.has(idx)) marks.delete(idx); else marks.add(idx);
+          renderStats();
+          saveState();
+        }
+        hover = cell;
+        showCoord(cell);
+        scheduleDraw();
+      }
+
+      // ── マウス・タッチ操作 ──
+      const pointers = new Map();
+      let gesture = null;
+
+      function localPos(e) {
+        const rect = stage.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      }
+      function pinchInfo() {
+        const pts = Array.from(pointers.values());
+        const dx = pts[1].x - pts[0].x, dy = pts[1].y - pts[0].y;
+        return { dist: Math.max(1, Math.hypot(dx, dy)), mx: (pts[0].x + pts[1].x) / 2, my: (pts[0].y + pts[1].y) / 2 };
+      }
+      function startPan(p, moved) {
+        gesture = { type: "pan", sx: p.x, sy: p.y, lx: p.x, ly: p.y, moved: moved };
+      }
+
+      stage.addEventListener("pointerdown", e => {
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        stage.setPointerCapture(e.pointerId);
+        const p = localPos(e);
+        pointers.set(e.pointerId, p);
+        if (pointers.size === 1) {
+          startPan(p, false);
+        } else if (pointers.size === 2) {
+          const info = pinchInfo();
+          gesture = { type: "pinch", d0: info.dist, s0: view.s, gx: (info.mx - view.ox) / view.s, gy: (info.my - view.oy) / view.s };
+        }
+      });
+
+      stage.addEventListener("pointermove", e => {
+        const p = localPos(e);
+        if (!pointers.has(e.pointerId)) {
+          // ボタンを押していないマウス移動：座標表示のみ
+          if (e.pointerType === "mouse" && shape) setHover(cellAt(p.x, p.y));
+          return;
+        }
+        pointers.set(e.pointerId, p);
+        if (gesture && gesture.type === "pan") {
+          if (!gesture.moved && Math.hypot(p.x - gesture.sx, p.y - gesture.sy) > TAP_TOLERANCE) {
+            gesture.moved = true;
+            stage.classList.add("dragging");
+          }
+          if (gesture.moved) {
+            view.ox += p.x - gesture.lx;
+            view.oy += p.y - gesture.ly;
+            clampPan();
+            scheduleDraw();
+          }
+          gesture.lx = p.x; gesture.ly = p.y;
+        } else if (gesture && gesture.type === "pinch" && pointers.size >= 2) {
+          const info = pinchInfo();
+          view.s = clamp(gesture.s0 * info.dist / gesture.d0, ZOOM_MIN, ZOOM_MAX);
+          view.ox = info.mx - gesture.gx * view.s;
+          view.oy = info.my - gesture.gy * view.s;
+          clampPan();
+          scheduleDraw();
+        }
+      });
+
+      function endPointer(e, canceled) {
+        if (!pointers.has(e.pointerId)) return;
+        const p = localPos(e);
+        pointers.delete(e.pointerId);
+        if (gesture && gesture.type === "pan" && !gesture.moved && !canceled && pointers.size === 0) {
+          handleTap(p.x, p.y);
+        }
+        if (pointers.size === 1) {
+          // ピンチの指を1本離した：残った指でドラッグを続ける（タップ扱いにはしない）
+          startPan(Array.from(pointers.values())[0], true);
+        } else if (pointers.size === 0) {
+          gesture = null;
+          stage.classList.remove("dragging");
+        }
+      }
+      stage.addEventListener("pointerup", e => endPointer(e, false));
+      stage.addEventListener("pointercancel", e => endPointer(e, true));
+      stage.addEventListener("pointerleave", e => {
+        if (e.pointerType === "mouse" && !pointers.size && hover) {
+          hover = null;
+          showCoordHint();
+          scheduleDraw();
+        }
+      });
+
+      stage.addEventListener("wheel", e => {
+        e.preventDefault();
+        const p = localPos(e);
+        const delta = e.deltaMode === 1 ? e.deltaY * WHEEL_LINE_PX : e.deltaY;
+        zoomAt(p.x, p.y, view.s * Math.exp(-delta * WHEEL_ZOOM_RATE));
+      }, { passive: false });
+
+      $("zoomInBtn").addEventListener("click", () => zoomAt(viewW / 2, viewH / 2, view.s * ZOOM_BUTTON_STEP));
+      $("zoomOutBtn").addEventListener("click", () => zoomAt(viewW / 2, viewH / 2, view.s / ZOOM_BUTTON_STEP));
+      $("fitBtn").addEventListener("click", () => { fitView(); scheduleDraw(); });
+
+      $("clearMarksBtn").addEventListener("click", () => {
+        const marks = currentMarks();
+        if (!marks.size) return;
+        if (!confirm("このサイズの「設置済み」の目印をすべて消します。よろしいですか？")) return;
+        marks.clear();
+        renderStats();
+        saveState();
+        if (hover) showCoord(hover);
+        scheduleDraw();
+      });
+
+      // 段差パターンのコピー
+      $("copyStepsBtn").addEventListener("click", () => {
+        const btn = $("copyStepsBtn");
+        const text = shape.steps.join(", ");
+        const done = () => {
+          btn.textContent = "コピーしました";
+          btn.classList.add("copied");
+          setTimeout(() => { btn.textContent = "コピー"; btn.classList.remove("copied"); }, 1500);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text) && done());
+        } else if (fallbackCopy(text)) {
+          done();
+        }
+      });
+      function fallbackCopy(text) {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        let ok = false;
+        try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+        document.body.removeChild(ta);
+        return ok;
+      }
+
+      // ── PNG保存 ──
+      function exportPng() {
+        const w = shape.w, h = shape.h;
+        const cell = clamp(Math.floor(EXPORT_MAX_PX / Math.max(w, h)), EXPORT_CELL_MIN, EXPORT_CELL_MAX);
+        const gridW = w * cell, gridH = h * cell;
+        const cw = gridW + EXPORT_MARGIN * 2;
+        const ch = gridH + EXPORT_MARGIN * 2 + EXPORT_HEADER;
+        const out = document.createElement("canvas");
+        out.width = Math.max(cw, 520);
+        out.height = ch;
+        const c = out.getContext("2d");
+        const ox = Math.round((out.width - gridW) / 2);
+        const oy = EXPORT_HEADER + EXPORT_MARGIN;
+
+        c.fillStyle = "#ffffff";
+        c.fillRect(0, 0, out.width, out.height);
+
+        // タイトル
+        const total = shape.total;
+        const stacks = Math.floor(total / STACK_SIZE), rest = total % STACK_SIZE;
+        const title = (state.mode === "circle" ? "円　直径 " + w : "楕円　幅 " + w + " × 高さ " + h) +
+          "（" + KIND_LABEL[state.kind] + (state.kind === "thick" ? " " + state.thick : "") + "）";
+        const sub = "必要ブロック数 " + fmt(total) + " 個（" + stacks + " スタック + " + rest + " 個）　設置済み " + fmt(placedCount()) + " 個" +
+          (shape.steps.length ? "　段差 1/4周: " + shape.steps.join(", ") : "");
+        c.fillStyle = COLORS.text;
+        c.textBaseline = "top";
+        c.font = "bold 20px " + FONT_FAMILY;
+        c.fillText(title, 16, 14);
+        c.font = "13px " + FONT_FAMILY;
+        c.fillStyle = COLORS.muted;
+        c.fillText(sub, 16, 44, out.width - 32);
+
+        paintGrid(c, cell, ox, oy, out.width, out.height, null);
+
+        // 目盛り（補助線の位置に中心からのブロック数を書く）
+        if (cell * state.gridStep >= EXPORT_LABEL_MIN_GAP) {
+          c.font = "11px " + FONT_FAMILY;
+          c.fillStyle = COLORS.muted;
+          c.textAlign = "center";
+          c.textBaseline = "bottom";
+          for (const bx of shape.boldX) c.fillText(bx.label, ox + bx.b * cell, oy - 6);
+          c.textAlign = "right";
+          c.textBaseline = "middle";
+          for (const bz of shape.boldZ) c.fillText(bz.label, ox - 6, oy + bz.b * cell);
+        }
+        c.fillStyle = COLORS.center;
+        c.font = "bold 11px " + FONT_FAMILY;
+        c.textAlign = "center";
+        c.textBaseline = "bottom";
+        c.fillText("中心", ox + (w / 2) * cell, oy - 6 - (cell * state.gridStep >= EXPORT_LABEL_MIN_GAP ? 13 : 0));
+
+        const name = (state.mode === "circle" ? "circle_" + w : "ellipse_" + w + "x" + h) + "_" +
+          (state.kind === "thick" ? "thick" + state.thick : state.kind) + ".png";
+        out.toBlob(blob => {
+          if (!blob) { alert("画像の作成に失敗しました。"); return; }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = name;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }, "image/png");
+      }
+      $("savePngBtn").addEventListener("click", exportPng);
+
+      // ── 初期化 ──
+      loadState();
+      setRadio("shapeMode", state.mode);
+      setRadio("kind", state.kind);
+      setRadio("gridStep", String(state.gridStep));
+      bindNumber("diameterInput", "diameterRange", "diameter", SIZE_MIN, SIZE_MAX);
+      bindNumber("widthInput", "widthRange", "width", SIZE_MIN, SIZE_MAX);
+      bindNumber("heightInput", "heightRange", "height", SIZE_MIN, SIZE_MAX);
+      bindNumber("thickInput", "thickRange", "thick", THICK_MIN, THICK_MAX);
+      bindRadios("shapeMode", v => { state.mode = v; update(); });
+      bindRadios("kind", v => { state.kind = v; update(); });
+      bindRadios("gridStep", v => { state.gridStep = parseInt(v, 10); update(); });
+
+      update();
+      if (window.ResizeObserver) new ResizeObserver(resizeCanvas).observe(stage);
+      else window.addEventListener("resize", resizeCanvas);
+      resizeCanvas();
+    })();
+  </script>
+</body>
+</html>
