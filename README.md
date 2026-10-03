@@ -1,4 +1,4 @@
-# YoruteraTool
+# YoruteraTool v2.0.0
 
 Minecraft 統合版（Bedrock）向けの、サーバーメンバー用ツールサイトです。
 公開URL：https://yoruteraoperations.github.io/YoruteraTool/
