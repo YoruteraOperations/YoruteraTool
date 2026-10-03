@@ -1,0 +1,298 @@
+/* ============================================================
+   ピクセルエディタ 共通スタイル（装備 64×32 / スキン 64×64 で共用）
+   ※ ピクセルエディタ16（pixelEditor.html）はこのファイルを使わない
+   ============================================================ */
+
+.pixel-wrap { max-width: 1100px; }
+
+.editor-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+}
+.canvas-col {
+  flex: 1 1 560px;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: stretch;
+}
+.panel-col {
+  flex: 1 1 280px;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ── 表示操作（拡大縮小・移動・下敷き） ── */
+.view-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+.view-bar .mini-btn { flex: 0 0 auto; }
+.view-bar .zoom-val {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  min-width: 3.2rem;
+  text-align: center;
+}
+.view-bar .spacer { flex: 1 1 auto; }
+.mini-btn.on {
+  background: var(--color-main);
+  border-color: var(--color-main);
+  color: #fff;
+}
+.guide-select {
+  padding: 0.4rem 0.4rem;
+  border: 1px solid var(--color-sub);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 0.78rem;
+  max-width: 100%;
+}
+
+/* ── キャンバス（スクロールできる表示枠の中に、拡大したキャンバスを置く） ── */
+.canvas-viewport {
+  position: relative;
+  width: 100%;
+  max-height: 72vh;
+  overflow: auto;
+  border: 1px solid var(--color-sub);
+  border-radius: 6px;
+  background: #e9ecea;
+  box-shadow: 0 2px 8px rgba(45, 52, 54, 0.12);
+  -webkit-overflow-scrolling: touch;
+}
+.canvas-stage {
+  position: relative;
+  margin: 0 auto;
+  /* 透明部分が分かる市松模様（マスの大きさに合わせてJSで background-size を設定） */
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #cfd4d2 25%, transparent 25%),
+    linear-gradient(-45deg, #cfd4d2 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #cfd4d2 75%),
+    linear-gradient(-45deg, transparent 75%, #cfd4d2 75%);
+  touch-action: none; /* タッチで描画する（移動は「移動」ツールで行う） */
+}
+.canvas-stage.panning { touch-action: none; cursor: grab; }
+.canvas-stage canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  display: block;
+}
+#drawCanvas { cursor: crosshair; }
+.canvas-stage.panning #drawCanvas { cursor: grab; }
+/* 下敷きは表示専用。操作は下の drawCanvas が受ける */
+#guideCanvas { pointer-events: none; }
+
+.canvas-caption {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+.guide-legend {
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* ── ツールボタン ── */
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+}
+.tool-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0.45rem 0.2rem;
+  border: 1px solid var(--color-sub);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: 0.68rem;
+  user-select: none;
+  transition: background-color 0.12s, border-color 0.12s, color 0.12s;
+}
+.tool-btn .ic { font-size: 1.1rem; line-height: 1; }
+.tool-btn:hover { border-color: var(--color-main); background: var(--color-base); }
+.tool-btn.active {
+  background: var(--color-main);
+  border-color: var(--color-main);
+  color: #fff;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.mini-btn {
+  flex: 1 1 auto;
+  cursor: pointer;
+  border: 1px solid var(--color-sub);
+  border-radius: 6px;
+  padding: 0.45rem 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: #fff;
+  color: var(--color-text);
+  transition: filter 0.12s, background-color 0.12s, border-color 0.12s;
+}
+.mini-btn:hover { border-color: var(--color-main); background: var(--color-base); }
+.mini-btn.on:hover { background: var(--color-main); }
+.mini-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.mini-btn.danger { color: var(--color-accent1); border-color: var(--color-accent1); }
+.mini-btn.danger:hover { background: var(--color-accent1); color: #fff; }
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+}
+.toggle-row input { width: 1.05rem; height: 1.05rem; accent-color: var(--color-main); }
+
+/* ── カラーピッカー ── */
+.picker-sv {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: crosshair;
+  border: 1px solid var(--color-sub);
+  touch-action: none;
+}
+#svCanvas { width: 100%; height: 100%; display: block; }
+.picker-cursor {
+  position: absolute;
+  width: 14px; height: 14px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.5);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.slider-block { display: flex; flex-direction: column; gap: 0.3rem; }
+.slider-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+input[type="range"].hue-range {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 14px; border-radius: 7px; outline: none;
+  background: linear-gradient(to right,
+    #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%,
+    #0000ff 67%, #ff00ff 83%, #ff0000 100%);
+}
+.alpha-track {
+  position: relative; width: 100%; height: 14px; border-radius: 7px; overflow: hidden;
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #cfd4d2 25%, transparent 25%),
+    linear-gradient(-45deg, #cfd4d2 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #cfd4d2 75%),
+    linear-gradient(-45deg, transparent 75%, #cfd4d2 75%);
+  background-size: 10px 10px;
+  background-position: 0 0, 0 5px, 5px -5px, -5px 0;
+}
+.alpha-track .alpha-fill { position: absolute; inset: 0; }
+input[type="range"].alpha-range {
+  -webkit-appearance: none; appearance: none;
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  background: transparent; outline: none; margin: 0;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; border: 2px solid var(--color-text);
+  cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; border: 2px solid var(--color-text);
+  cursor: pointer;
+}
+
+.color-readout { display: flex; align-items: center; gap: 0.6rem; }
+.swatch-preview {
+  width: 42px; height: 42px; border-radius: 6px; flex-shrink: 0;
+  border: 1px solid var(--color-sub);
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #cfd4d2 25%, transparent 25%),
+    linear-gradient(-45deg, #cfd4d2 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #cfd4d2 75%),
+    linear-gradient(-45deg, transparent 75%, #cfd4d2 75%);
+  background-size: 12px 12px;
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+  position: relative;
+  overflow: hidden;
+}
+.swatch-preview .fill { position: absolute; inset: 0; }
+.hex-field { flex: 1; display: flex; flex-direction: column; gap: 0.2rem; }
+.hex-field label { font-size: 0.7rem; color: var(--color-text-muted); margin: 0; font-weight: 400; }
+.hex-field input {
+  width: 100%; padding: 0.4rem 0.5rem;
+  border: 1px solid var(--color-sub); border-radius: 6px;
+  background: var(--color-base);
+  font-family: ui-monospace, Consolas, monospace; font-size: 0.9rem;
+  text-transform: uppercase;
+}
+.hex-field input:focus { outline: none; border-color: var(--color-main); box-shadow: 0 0 0 2px rgba(103,167,125,0.25); }
+
+.recent-title { font-size: 0.72rem; color: var(--color-text-muted); margin-bottom: 0.35rem; }
+.recent-swatches { display: flex; flex-wrap: wrap; gap: 4px; }
+.recent-sw {
+  width: 24px; height: 24px; border-radius: 4px; cursor: pointer;
+  border: 1px solid rgba(0,0,0,0.15);
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #cfd4d2 25%, transparent 25%),
+    linear-gradient(-45deg, #cfd4d2 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #cfd4d2 75%),
+    linear-gradient(-45deg, transparent 75%, #cfd4d2 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+  position: relative; overflow: hidden;
+}
+.recent-sw .fill { position: absolute; inset: 0; }
+.recent-sw:hover { transform: scale(1.12); border-color: var(--color-main); }
+
+.import-mode { display: flex; gap: 0.75rem; font-size: 0.78rem; flex-wrap: wrap; }
+.import-mode label { display: flex; align-items: center; gap: 0.3rem; font-weight: 400; margin: 0; cursor: pointer; }
+.import-mode input { accent-color: var(--color-main); }
+
+.export-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.export-row .btn-primary { flex: 1 1 auto; }
+
+.card .hint { margin-top: 0.6rem; }
+
+/* ── レスポンシブ ── */
+@media (max-width: 760px) {
+  .editor-layout { flex-direction: column; }
+  .canvas-col, .panel-col { width: 100%; }
+  .canvas-viewport { max-height: 62vh; }
+}
+@media (max-width: 420px) {
+  .tool-btn { font-size: 0.62rem; padding: 0.4rem 0.1rem; }
+  .tool-btn .ic { font-size: 1rem; }
+  .view-bar .mini-btn { padding: 0.4rem 0.45rem; font-size: 0.72rem; }
+}

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ピクセルエディタ 装備 — yoruteraTool</title>
+  <link rel="stylesheet" href="../common.css">
+  <link rel="stylesheet" href="pixelEditorCore.css">
+  <link rel="icon" type="image/png" href="../images/favicon_circle_180.png">
+  <link rel="apple-touch-icon" href="../images/favicon_circle_180.png">
+</head>
+<body>
+  <div class="site-bar">
+    <span>YoruteraTool — pixelEditor Armor</span>
+    <a href="../index.html" class="home-button">HOME</a>
+  </div>
+
+  <div class="wrap pixel-wrap">
+    <h1>装備テクスチャ エディタ 64×32</h1>
+    <p class="lead">防具を身に着けたときの見た目用テクスチャ（64×32px）を作成できます。統合版では、ヘルメット・チェストプレート・ブーツは「〜_1.png」、レギンスは「〜_2.png」の2枚に分かれます。下敷きを切り替えて、部位と面の位置を確認しながら描けます。</p>
+    <div id="editorRoot"></div>
+  </div>
+
+  <footer>
+    <p>© 2026 Yorutera Operations</p>
+  </footer>
+
+  <script src="pixelEditorCore.js"></script>
+  <script>
+    (function () {
+      "use strict";
+      const box = PixelEditorCore.boxRegions;
+
+      // 下敷きの色（部位ごと）
+      const G = { head: "#d9483b", body: "#2f6fd0", arm: "#2e9e4f", leg: "#8a4fc7" };
+      // サンプルの色（自作の配色）
+      const S1 = { head: "#8fa7c4", body: "#6f8fb8", arm: "#5f7fa8", leg: "#4f6a8f" };
+      const S2 = { body: "#7a9a6a", leg: "#5f7f52" };
+
+      // 統合版の防具テクスチャ 64×32 の配置（geometry.player.armor.base と同じボックスUV）
+      //   頭(0,0) 頭2＝ヘルメット外側(32,0) 胴(16,16) 腕(40,16) 脚(0,16)
+      //   左腕・左脚は右側と同じ場所を左右反転して使う
+      function layer1(C, withOuter) {
+        const list = [].concat(
+          box(0, 0, 8, 8, 8, "頭", C.head),
+          box(16, 16, 8, 12, 4, "胴", C.body),
+          box(40, 16, 4, 12, 4, "腕", C.arm),
+          box(0, 16, 4, 12, 4, "脚", C.leg)
+        );
+        return withOuter ? list.concat(box(32, 0, 8, 8, 8, "頭2", C.head, { dashed: true })) : list;
+      }
+      function layer2(C) {
+        return [].concat(
+          box(16, 16, 8, 12, 4, "腰", C.body),
+          box(0, 16, 4, 12, 4, "脚", C.leg)
+        );
+      }
+
+      PixelEditorCore.init({
+        root: document.getElementById("editorRoot"),
+        width: 64,
+        height: 32,
+        fileName: "my_armor_1",
+        guides: [
+          { label: "ヘルメット・チェストプレート・ブーツ（_1）", regions: layer1(G, true),
+            note: "「〜_1.png」用です。頭＝ヘルメット、胴と腕＝チェストプレート、脚＝ブーツ（主に下の方が見えます）。点線の「頭2」はヘルメットの外側に重なる部分です。" },
+          { label: "レギンス（_2）", regions: layer2(G),
+            note: "「〜_2.png」用です。腰＝レギンスの腰回り（胴の場所を使います）、脚＝レギンスの脚。" },
+        ],
+        guideNote: "前面には部位名、ほかの面には「上・下・右・左・後」を表示しています（右・左はキャラクターから見た向き）。左腕・左脚は同じ場所を左右反転して使います。",
+        samples: [
+          { label: "ヘルメット・チェストプレート・ブーツ（_1）", guide: 0, regions: layer1(S1, false) },
+          { label: "レギンス（_2）", guide: 1, regions: layer2(S2) },
+        ],
+      });
+    })();
+  </script>
+</body>
+</html>

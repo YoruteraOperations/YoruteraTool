@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ピクセルエディタ スキン — yoruteraTool</title>
+  <link rel="stylesheet" href="../common.css">
+  <link rel="stylesheet" href="pixelEditorCore.css">
+  <link rel="icon" type="image/png" href="../images/favicon_circle_180.png">
+  <link rel="apple-touch-icon" href="../images/favicon_circle_180.png">
+</head>
+<body>
+  <div class="site-bar">
+    <span>YoruteraTool — pixelEditor Skin</span>
+    <a href="../index.html" class="home-button">HOME</a>
+  </div>
+
+  <div class="wrap pixel-wrap">
+    <h1>スキン エディタ 64×64</h1>
+    <p class="lead">統合版のプレイヤースキン（64×64px）を作成できます。下敷きで頭・胴・腕・脚と各面の位置を確認しながら描けます。透過PNGとして書き出し、既存スキンの読み込み・編集にも対応しています。</p>
+    <div id="editorRoot"></div>
+  </div>
+
+  <footer>
+    <p>© 2026 Yorutera Operations</p>
+  </footer>
+
+  <script src="pixelEditorCore.js"></script>
+  <script>
+    (function () {
+      "use strict";
+      const box = PixelEditorCore.boxRegions;
+
+      // 下敷きの色（部位ごと）
+      const G = {
+        head: "#d9483b", body: "#2f6fd0", rArm: "#2e9e4f", lArm: "#11939a", rLeg: "#8a4fc7", lLeg: "#c4477f",
+      };
+      // サンプルの色（部位ごと。自作の配色）
+      const S = {
+        head: "#f0c090", body: "#4a86d4", rArm: "#5cb85c", lArm: "#2e9e8f", rLeg: "#8e6bbf", lLeg: "#c0607a",
+      };
+
+      // 統合版スキン 64×64 の配置（ボックスUV）
+      //   1層目：頭(0,0) 胴(16,16) 右腕(40,16) 左腕(32,48) 右脚(0,16) 左脚(16,48)
+      //   2層目：頭(32,0) 胴(16,32) 右腕(40,32) 左腕(48,48) 右脚(0,32) 左脚(0,48)
+      // armW：腕の幅（標準＝4、細い腕＝3）
+      function skinRegions(armW, C, withOverlay) {
+        const list = [].concat(
+          box(0, 0, 8, 8, 8, "頭", C.head),
+          box(16, 16, 8, 12, 4, "胴", C.body),
+          box(40, 16, armW, 12, 4, "右腕", C.rArm),
+          box(32, 48, armW, 12, 4, "左腕", C.lArm),
+          box(0, 16, 4, 12, 4, "右脚", C.rLeg),
+          box(16, 48, 4, 12, 4, "左脚", C.lLeg)
+        );
+        if (!withOverlay) return list;
+        const dashed = { dashed: true };
+        return list.concat(
+          box(32, 0, 8, 8, 8, "頭2", C.head, dashed),
+          box(16, 32, 8, 12, 4, "胴2", C.body, dashed),
+          box(40, 32, armW, 12, 4, "右腕2", C.rArm, dashed),
+          box(48, 48, armW, 12, 4, "左腕2", C.lArm, dashed),
+          box(0, 32, 4, 12, 4, "右脚2", C.rLeg, dashed),
+          box(0, 48, 4, 12, 4, "左脚2", C.lLeg, dashed)
+        );
+      }
+
+      // サンプルの顔（頭の前面 x8〜15, y8〜15 に目と口）
+      const FACE_DOTS = [
+        { x: 9, y: 12, color: "#ffffff" }, { x: 10, y: 12, color: "#3b5bdb" },
+        { x: 13, y: 12, color: "#3b5bdb" }, { x: 14, y: 12, color: "#ffffff" },
+        { x: 11, y: 14, color: "#b5524a" }, { x: 12, y: 14, color: "#b5524a" },
+      ];
+
+      PixelEditorCore.init({
+        root: document.getElementById("editorRoot"),
+        width: 64,
+        height: 64,
+        fileName: "my_skin",
+        guides: [
+          { label: "標準の腕（4px）", regions: skinRegions(4, G, true),
+            note: "標準体型（腕の幅 4px）の配置です。" },
+          { label: "細い腕（3px）", regions: skinRegions(3, G, true),
+            note: "細い腕の体型（腕の幅 3px）の配置です。腕の右側の1列は使われません。" },
+        ],
+        guideNote: "前面には部位名、ほかの面には「上・下・右・左・後」を表示しています（右・左はキャラクターから見た向き）。点線で囲んだ「頭2」などは2層目（体の外側に重なるレイヤー）で、帽子や上着などに使います。2層目に描かない部分は透明のままにしてください。",
+        samples: [
+          { label: "標準の腕（4px）", guide: 0, regions: skinRegions(4, S, false), dots: FACE_DOTS },
+          { label: "細い腕（3px）", guide: 1, regions: skinRegions(3, S, false), dots: FACE_DOTS },
+        ],
+      });
+    })();
+  </script>
+</body>
+</html>

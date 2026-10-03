@@ -297,13 +297,11 @@
             <div class="tool-btn" data-tool="rect" title="四角 (R)"><span class="ic">⬜</span><span>四角</span></div>
             <div class="tool-btn" data-tool="circle" title="円 (C)"><span class="ic">⭕</span><span>円</span></div>
             <div class="tool-btn" data-tool="diamond" title="ひし形 (D)"><span class="ic">🔷</span><span>ひし形</span></div>
+            <div class="tool-btn" data-tool="fill" title="塗りつぶし (F)"><span class="ic">🪣</span><span>塗りつぶし</span></div>
           </div>
 
-          <div class="toggle-row" style="margin-top:0.6rem;">
-            <input type="checkbox" id="shapeFillToggle">
-            <label for="shapeFillToggle" style="margin:0;font-weight:400;cursor:pointer;">図形の中を塗る</label>
-          </div>
-          <p class="hint" style="margin-top:0.4rem;">図形ツールは始点から終点へドラッグして描きます。色は選択中のカラーが使われます（正方形・正円にしたい時は同じ幅・高さでドラッグ）。</p>
+          <p class="hint" style="margin-top:0.6rem;">図形ツールは始点から終点へドラッグして描きます。色は選択中のカラーが使われます（正方形・正円にしたい時は同じ幅・高さでドラッグ）。</p>
+          <p class="hint" style="margin-top:0.3rem;">塗りつぶしは、クリックしたマスと同じ色でつながっている範囲（上下左右）を選択中の色で塗ります。斜めの線や円で囲んだ内側も、はみ出さずに塗れます。透明の部分も塗れます。</p>
 
           <div class="action-row" style="margin-top:0.6rem;">
             <button class="mini-btn" id="undoBtn" title="元に戻す (Ctrl+Z)">↩ 元に戻す</button>
@@ -584,15 +582,14 @@
 
       // 現在の図形ツールに応じて、始点aから終点bへ図形を描く
       function drawShape(a, b) {
-        const fill = document.getElementById("shapeFillToggle").checked;
         if (currentTool === "line") {
           drawLine(a.x, a.y, b.x, b.y);
         } else if (currentTool === "rect") {
-          drawRect(a.x, a.y, b.x, b.y, fill);
+          drawRect(a.x, a.y, b.x, b.y);
         } else if (currentTool === "circle") {
-          drawMembership(a.x, a.y, b.x, b.y, fill, ellipseInside);
+          drawMembership(a.x, a.y, b.x, b.y, ellipseInside);
         } else if (currentTool === "diamond") {
-          drawMembership(a.x, a.y, b.x, b.y, fill, diamondInside);
+          drawMembership(a.x, a.y, b.x, b.y, diamondInside);
         }
       }
 
@@ -610,22 +607,17 @@
         }
       }
 
-      // 四角（外周のみ／中を塗る）
-      function drawRect(x0, y0, x1, y1, fill) {
+      // 四角（外周のみ）
+      function drawRect(x0, y0, x1, y1) {
         const xa = Math.min(x0, x1), xb = Math.max(x0, x1);
         const ya = Math.min(y0, y1), yb = Math.max(y0, y1);
-        if (fill) {
-          for (let y = ya; y <= yb; y++)
-            for (let x = xa; x <= xb; x++) setPixel(x, y);
-        } else {
-          for (let x = xa; x <= xb; x++) { setPixel(x, ya); setPixel(x, yb); }
-          for (let y = ya; y <= yb; y++) { setPixel(xa, y); setPixel(xb, y); }
-        }
+        for (let x = xa; x <= xb; x++) { setPixel(x, ya); setPixel(x, yb); }
+        for (let y = ya; y <= yb; y++) { setPixel(xa, y); setPixel(xb, y); }
       }
 
       // バウンディングボックスからメンバーシップ関数を作る共通ヘルパ
-      // inside(x,y) が true のセルが図形内。外周＝内側かつ隣接に外側があるセル。
-      function drawMembership(x0, y0, x1, y1, fill, makeInside) {
+      // inside(x,y) が true のセルが図形内。外周＝内側かつ隣接に外側があるセル（外周のみ描く）。
+      function drawMembership(x0, y0, x1, y1, makeInside) {
         const xa = Math.min(x0, x1), xb = Math.max(x0, x1);
         const ya = Math.min(y0, y1), yb = Math.max(y0, y1);
         const cx = (xa + xb + 1) / 2, cy = (ya + yb + 1) / 2;
@@ -634,14 +626,39 @@
         for (let y = ya; y <= yb; y++) {
           for (let x = xa; x <= xb; x++) {
             if (!inside(x, y)) continue;
-            if (fill) {
-              setPixel(x, y);
-            } else if (!inside(x - 1, y) || !inside(x + 1, y) ||
-                       !inside(x, y - 1) || !inside(x, y + 1)) {
+            if (!inside(x - 1, y) || !inside(x + 1, y) ||
+                !inside(x, y - 1) || !inside(x, y + 1)) {
               setPixel(x, y); // 外周のみ
             }
           }
         }
+      }
+
+      // ── 塗りつぶし ──
+      // クリックしたマスと同じ色（透明も1つの色として扱う）で、上下左右の4マスで
+      // つながっている範囲を現在の色で塗る。変化があれば true を返す。
+      const NEIGHBORS_4 = [[0, -1], [-1, 0], [1, 0], [0, 1]];
+      function floodFill(sx, sy) {
+        const target = grid[sy][sx];
+        const rgb = currentRgb();
+        const paint = { r: rgb.r, g: rgb.g, b: rgb.b, a: alpha };
+        if (sameCell(target, paint)) return false; // 同じ色なら何もしない
+        const visited = new Uint8Array(SIZE * SIZE);
+        const stack = [sx, sy];
+        visited[sy * SIZE + sx] = 1;
+        while (stack.length) {
+          const y = stack.pop(), x = stack.pop();
+          grid[y][x] = { r: paint.r, g: paint.g, b: paint.b, a: paint.a };
+          for (const [dx, dy] of NEIGHBORS_4) {
+            const nx = x + dx, ny = y + dy;
+            if (nx < 0 || nx >= SIZE || ny < 0 || ny >= SIZE) continue;
+            const k = ny * SIZE + nx;
+            if (visited[k] || !sameCell(grid[ny][nx], target)) continue;
+            visited[k] = 1;
+            stack.push(nx, ny);
+          }
+        }
+        return true;
       }
 
       // 円（楕円）：セル中心が楕円内かどうか
@@ -718,6 +735,20 @@
         // スポイトは履歴を汚さず、色を吸ってペンに戻すだけ
         if (currentTool === "eyedropper") {
           applyAt(cell);
+          return;
+        }
+
+        // 塗りつぶしは1クリック＝1操作。塗る前の状態を保存し、変化がなければ履歴を戻す
+        if (currentTool === "fill") {
+          const snapshot = cloneGrid(grid);
+          if (floodFill(cell.x, cell.y)) {
+            undoStack.push(snapshot);
+            if (undoStack.length > 100) undoStack.shift();
+            redoStack.length = 0;
+            updateUndoButtons();
+            addRecent();
+            render();
+          }
           return;
         }
 
@@ -1030,6 +1061,7 @@
           case "r": setTool("rect"); break;
           case "c": setTool("circle"); break;
           case "d": setTool("diamond"); break;
+          case "f": setTool("fill"); break;
         }
       });
 
