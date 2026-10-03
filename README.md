@@ -1,1 +1,1 @@
-# YoruteraTool v1.6
+# YoruteraTool v1.7
