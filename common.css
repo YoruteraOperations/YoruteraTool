@@ -395,6 +395,29 @@ code {
   font-size: 0.95rem;
 }
 
+/* グループ間の区切り線：main の幅を超えて画面幅の約9割まで広げる */
+.tools-index-divider {
+  height: 0;
+  border: 0;
+  border-top: 3px solid var(--color-text);
+  margin: 2.1rem calc(50% - 44vw) 2.2rem;
+}
+
+/* 説明文直後の線は見出しブロックの既存の下余白（1.6rem）だけ空ける */
+.tools-index-heading + .tools-index-divider {
+  margin-top: 0;
+}
+
+/* グループ見出し（command）：タイトルと同じ書体・細め・グレー */
+.tools-index-group-title {
+  margin: -1rem 0 1.3rem; /* 上は区切り線の下余白と相殺して線に近づける */
+  text-align: center;
+  font-size: clamp(1.4rem, 0.9rem + 1.3vw, 1.9rem);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--color-text-muted);
+}
+
 .tools-index-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(220px, 1fr));
