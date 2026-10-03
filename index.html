@@ -17,39 +17,53 @@
       <p class="tools-index-lead">使いたいツールを選択してください。</p>
     </section>
 
-    <section class="tools-index-grid">
-      <a class="tools-index-card" href="toolPages/convertItemCommand.html">
-        <h2 class="tools-index-card-title">コマンド生成</h2>
-        <p class="tools-index-card-subtitle">アイテム交換・換金</p>
-      </a>
+    <hr class="tools-index-divider">
 
-      <a class="tools-index-card" href="toolPages/searchItemID.html">
-        <h2 class="tools-index-card-title">アイテムID検索</h2>
-      </a>
-
-      <a class="tools-index-card" href="toolPages/searchAddonItemID.html">
-        <h2 class="tools-index-card-title">アドオンアイテムID検索</h2>
-        <p class="tools-index-card-subtitle">自作アドオンのアイテムIDを名前から検索</p>
-      </a>
-
-      <a class="tools-index-card" href="toolPages/searchBiomeID.html">
-        <h2 class="tools-index-card-title">バイオームID検索</h2>
-        <p class="tools-index-card-subtitle">/locate biome コマンド生成</p>
-      </a>
-
+    <!-- グループ1：作成系ツール（見出しなし） -->
+    <section class="tools-index-grid" aria-label="作成ツール">
       <a class="tools-index-card" href="toolPages/texteditor.html">
-        <h2 class="tools-index-card-title">テキスト生成</h2>
+        <h2 class="tools-index-card-title">テキストエディタ</h2>
+        <p class="tools-index-card-subtitle">ゲーム内テキスト生成（§）</p>
       </a>
 
       <a class="tools-index-card" href="toolPages/pixelEditor.html">
-        <h2 class="tools-index-card-title">ピクセルエディタ</h2>
-        <p class="tools-index-card-subtitle">16×16 アイテムテクスチャ作成</p>
+        <h2 class="tools-index-card-title">ピクセルエディタ16</h2>
+        <p class="tools-index-card-subtitle">16×16 アイテムテクスチャ用</p>
       </a>
 
       <a class="tools-index-card" href="toolPages/circleGenerator.html">
         <h2 class="tools-index-card-title">円ジェネレーター</h2>
-        <p class="tools-index-card-subtitle">円・楕円のブロック配置を計算</p>
+        <p class="tools-index-card-subtitle">円・楕円のブロック配置計算用</p>
       </a>
+    </section>
+
+    <hr class="tools-index-divider">
+
+    <!-- グループ2：コマンド系ツール -->
+    <section aria-labelledby="tools-index-command-title">
+      <h2 class="tools-index-group-title" id="tools-index-command-title">command</h2>
+
+      <div class="tools-index-grid">
+        <a class="tools-index-card" href="toolPages/searchItemID.html">
+          <h2 class="tools-index-card-title">アイテムID検索（バニラ）</h2>
+          <p class="tools-index-card-subtitle">統合版バニラ v26.40対応</p>
+        </a>
+
+        <a class="tools-index-card" href="toolPages/searchAddonItemID.html">
+          <h2 class="tools-index-card-title">アイテムID検索（アドオン）</h2>
+          <p class="tools-index-card-subtitle">独自アドオン&365blocks対応</p>
+        </a>
+
+        <a class="tools-index-card" href="toolPages/searchBiomeID.html">
+          <h2 class="tools-index-card-title">バイオームID検索</h2>
+          <p class="tools-index-card-subtitle">/locate biome コマンド用</p>
+        </a>
+
+        <a class="tools-index-card" href="toolPages/convertItemCommand.html">
+          <h2 class="tools-index-card-title">NPC用コマンド生成</h2>
+          <p class="tools-index-card-subtitle">アイテム交換・換金用</p>
+        </a>
+      </div>
     </section>
   </main>
 
